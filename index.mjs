@@ -1,35 +1,23 @@
 import express from "express"
 import dotenv from 'dotenv'
 import apiRouter from './src/routes/apiRoute.mjs'
-import db from "./src/utils/database.mjs";
-
-const app = express();
-
+import { healthCheck } from "./src/utils/middleware/health.mjs"
 
 dotenv.config()
+const app = express();
+const port = process.env.PORT || 3000;
+
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.use('/api/', apiRouter)
+app.get('/health', healthCheck);
+app.use('/api/', apiRouter);
 
-app.get('/health', async (req, res) => {
-  let dbConnection;
-  try {
-    console.log('florea');
-    await db.raw('SELECT 1+1 AS result');
-    dbConnection = "OK";
-  } catch (error) {
-    console.log("ERROR: ", error)
-    dbConnection = false;
-  }
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
 
-  return res.status(200).json({
-    status: 'UP',
-    uptime: process.uptime(),
-    timestamp: Date.now(),
-    db_connection: dbConnection
-  });
-})
-
-export default app;
+server.on('error', (err) => {
+  console.error('Could not start server:', err);
+});
